@@ -5,6 +5,8 @@
 gconf.glade.h
 *.pot
 *.mo
+*.lex.c
+*.tab.c
 
 #
 # configuration programs
