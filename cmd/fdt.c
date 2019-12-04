@@ -16,7 +16,6 @@
 #include <fdt_support.h>
 #include <mapmem.h>
 #include <asm/io.h>
-#include <asm/unaligned.h>
 
 #define MAX_LEVEL	32		/* how deeply nested we will go */
 #define SCRATCHPAD	1024		/* bytes of scratchpad memory */
@@ -72,6 +71,40 @@ static int fdt_value_env_set(const void *nodep, int len, const char *var)
 		return 1;
 	}
 	return 0;
+}
+
+static const char * const fdt_member_table[] = {
+	"magic",
+	"totalsize",
+	"off_dt_struct",
+	"off_dt_strings",
+	"off_mem_rsvmap",
+	"version",
+	"last_comp_version",
+	"boot_cpuid_phys",
+	"size_dt_strings",
+	"size_dt_struct",
+};
+
+static int fdt_get_header_value(int argc, char * const argv[])
+{
+	fdt32_t *fdtp = (fdt32_t *)working_fdt;
+	ulong val;
+	int i;
+
+	if (argv[2][0] != 'g')
+		return CMD_RET_FAILURE;
+
+	for (i = 0; i < ARRAY_SIZE(fdt_member_table); i++) {
+		if (strcmp(fdt_member_table[i], argv[4]))
+			continue;
+
+		val = fdt32_to_cpu(fdtp[i]);
+		env_set_hex(argv[3], val);
+		return CMD_RET_SUCCESS;
+	}
+
+	return CMD_RET_FAILURE;
 }
 
 /*
@@ -203,7 +236,7 @@ static int do_fdt(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				fdt_strerror(err));
 			return 1;
 		}
-		working_fdt = newaddr;
+		set_working_fdt_addr((ulong)newaddr);
 #ifdef CONFIG_OF_SYSTEM_SETUP
 	/* Call the board-specific fixup routine */
 	} else if (strncmp(argv[1], "sys", 3) == 0) {
@@ -492,6 +525,9 @@ static int do_fdt(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	 * Display header info
 	 */
 	} else if (argv[1][0] == 'h') {
+		if (argc == 5)
+			return fdt_get_header_value(argc, argv);
+
 		u32 version = fdt_version(working_fdt);
 		printf("magic:\t\t\t0x%x\n", fdt_magic(working_fdt));
 		printf("totalsize:\t\t0x%x (%d)\n", fdt_totalsize(working_fdt),
@@ -597,6 +633,9 @@ static int do_fdt(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			       fdt_strerror(err));
 			return CMD_RET_FAILURE;
 		}
+#ifdef CONFIG_SOC_KEYSTONE
+		ft_board_setup_ex(working_fdt, gd->bd);
+#endif
 	}
 #endif
 	/* Create a chosen node */
@@ -780,10 +819,7 @@ static int fdt_parse_prop(char * const *newval, int count, char *data, int *len)
 			cp = newp;
 			tmp = simple_strtoul(cp, &newp, 0);
 			if (*cp != '?')
-			{
-				tmp = cpu_to_fdt32(tmp);
-				put_unaligned(tmp, (fdt32_t *)data);
-			}
+				*(fdt32_t *)data = cpu_to_fdt32(tmp);
 			else
 				newp++;
 
@@ -1091,7 +1127,8 @@ static char fdt_help_text[] =
 	"fdt set    <path> <prop> [<val>]    - Set <property> [to <val>]\n"
 	"fdt mknode <path> <node>            - Create a new node after <path>\n"
 	"fdt rm     <path> [<prop>]          - Delete the node or <property>\n"
-	"fdt header                          - Display header info\n"
+	"fdt header [get <var> <member>]     - Display header info\n"
+	"                                      get - get header member <member> and store it in <var>\n"
 	"fdt bootcpu <id>                    - Set boot cpuid\n"
 	"fdt memory <addr> <size>            - Add/Update memory node\n"
 	"fdt rsvmem print                    - Show current mem reserves\n"

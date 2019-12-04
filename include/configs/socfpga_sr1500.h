@@ -17,7 +17,6 @@
 /* Ethernet on SoC (EMAC) */
 #define CONFIG_PHY_INTERFACE_MODE	PHY_INTERFACE_MODE_RGMII
 /* The PHY is autodetected, so no MII PHY address is needed here */
-#define CONFIG_PHY_MARVELL
 #define PHY_ANEG_TIMEOUT	8000
 
 /* Environment */
@@ -36,11 +35,6 @@
 #define CONFIG_ENV_SIZE		(16 * 1024)
 #define CONFIG_ENV_OFFSET	0x000e0000
 #define CONFIG_ENV_OFFSET_REDUND (CONFIG_ENV_OFFSET + CONFIG_ENV_SECT_SIZE)
-#define CONFIG_ENV_SPI_BUS	0
-#define CONFIG_ENV_SPI_CS	0
-#define CONFIG_ENV_SPI_MODE	SPI_MODE_3
-#define CONFIG_ENV_SPI_MAX_HZ	100000000	/* Use max of 100MHz */
-#define CONFIG_SF_DEFAULT_SPEED	100000000
 
 /*
  * The QSPI NOR flash layout on SR1500:
