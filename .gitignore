@@ -20,6 +20,11 @@
 *.bin
 *.patch
 *.cfgtmp
+*.dtb
+*.lex.c
+*.tab.c
+*.tab.h
+
 
 # host programs on Cygwin
 *.exe
