@@ -24,8 +24,13 @@
 #include <asm/arch/timer.h>
 #include <asm/arch/tzpc.h>
 #include <asm/arch/mmc.h>
+#include <asm/arch/prcm.h>
 
 #include <linux/compiler.h>
+
+#if (CONFIG_CONS_INDEX > 1) && defined(CONFIG_MACH_SUN8I_H3)
+#include <ns16550.h>
+#endif
 
 struct fel_stash {
 	uint32_t sp;
@@ -66,6 +71,11 @@ struct mm_region *mem_map = sunxi_mem_map;
 
 static int gpio_init(void)
 {
+#if defined(CONFIG_MACH_SUNXI_H3_H5)
+	/* enable R_PIO GPIO access */
+	prcm_apb0_enable(PRCM_APB0_GATE_PIO);
+#endif
+
 	__maybe_unused uint val;
 #if CONFIG_CONS_INDEX == 1 && defined(CONFIG_UART0_PORT_F)
 #if defined(CONFIG_MACH_SUN4I) || \
@@ -129,6 +139,10 @@ static int gpio_init(void)
 	sunxi_gpio_set_cfgpin(SUNXI_GPG(3), SUN5I_GPG_UART1);
 	sunxi_gpio_set_cfgpin(SUNXI_GPG(4), SUN5I_GPG_UART1);
 	sunxi_gpio_set_pull(SUNXI_GPG(4), SUNXI_GPIO_PULL_UP);
+#elif CONFIG_CONS_INDEX == 2 && defined(CONFIG_MACH_SUN8I_H3)
+	sunxi_gpio_set_cfgpin(SUNXI_GPG(6), SUN8I_H3_GPG_UART1);
+	sunxi_gpio_set_cfgpin(SUNXI_GPG(7), SUN8I_H3_GPG_UART1);
+	sunxi_gpio_set_pull(SUNXI_GPG(7), SUNXI_GPIO_PULL_UP);
 #elif CONFIG_CONS_INDEX == 3 && defined(CONFIG_MACH_SUN8I)
 	sunxi_gpio_set_cfgpin(SUNXI_GPB(0), SUN8I_GPB_UART2);
 	sunxi_gpio_set_cfgpin(SUNXI_GPB(1), SUN8I_GPB_UART2);
@@ -309,6 +323,18 @@ void board_init_f(ulong dummy)
 	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 #endif
 	sunxi_board_init();
+
+#if (CONFIG_CONS_INDEX > 1) && defined(CONFIG_MACH_SUN8I_H3)
+	/* the sunxi kernel needs uart0 to be initialized by the bootloader */
+
+	/* configure uart0 GPIOs */
+	sunxi_gpio_set_cfgpin(SUNXI_GPA(4), SUN8I_H3_GPA_UART0);
+	sunxi_gpio_set_cfgpin(SUNXI_GPA(5), SUN8I_H3_GPA_UART0);
+	sunxi_gpio_set_pull(SUNXI_GPA(5), SUNXI_GPIO_PULL_UP);
+
+	/* initialize uart0 */
+	NS16550_init((NS16550_t)(SUNXI_UART0_BASE), CONFIG_SYS_NS16550_CLK / 16 / CONFIG_BAUDRATE);
+#endif
 }
 #endif
 
