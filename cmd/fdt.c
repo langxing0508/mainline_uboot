@@ -9,6 +9,7 @@
 
 #include <common.h>
 #include <command.h>
+#include <env.h>
 #include <linux/ctype.h>
 #include <linux/types.h>
 #include <asm/global_data.h>
@@ -16,7 +17,6 @@
 #include <fdt_support.h>
 #include <mapmem.h>
 #include <asm/io.h>
-#include <asm/unaligned.h>
 
 #define MAX_LEVEL	32		/* how deeply nested we will go */
 #define SCRATCHPAD	1024		/* bytes of scratchpad memory */
@@ -820,10 +820,7 @@ static int fdt_parse_prop(char * const *newval, int count, char *data, int *len)
 			cp = newp;
 			tmp = simple_strtoul(cp, &newp, 0);
 			if (*cp != '?')
-			{
-				tmp = cpu_to_fdt32(tmp);
-				put_unaligned(tmp, (fdt32_t *)data);
-			}
+				*(fdt32_t *)data = cpu_to_fdt32(tmp);
 			else
 				newp++;
 
